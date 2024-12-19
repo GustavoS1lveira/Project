@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta CEP com Preenchimento Automático</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        input { margin: 10px 0; padding: 8px; width: 300px; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        .error { color: red; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Consulta CEP com Preenchimento Automático</h1>
+    <form>
+        <label for="cep">CEP:</label>
+        <input type="text" id="cep" placeholder="Digite o CEP" maxlength="8" oninput="consultarCEP()">
+
+        <label for="cidade">Cidade:</label>
+        <input type="text" id="cidade" readonly>
+
+        <label for="bairro">Bairro:</label>
+        <input type="text" id="bairro" readonly>
+
+        <label for="rua">Rua:</label>
+        <input type="text" id="rua" readonly>
+    </form>
+
+    <div id="mensagem" class="error"></div>
+
+    <script>
+        let debounceTimer;
+        async function consultarCEP() {
+            clearTimeout(debounceTimer);
+
+            // Aguarda o usuário terminar de digitar (500ms de debounce)
+            debounceTimer = setTimeout(async () => {
+                const cep = document.getElementById('cep').value.trim();
+                const url = `https://viacep.com.br/ws/${cep}/json/`;
+
+                // Limpa mensagens e campos antes da nova consulta
+                document.getElementById('mensagem').textContent = '';
+                document.getElementById('cidade').value = '';
+                document.getElementById('bairro').value = '';
+                document.getElementById('rua').value = '';
+
+                // Não realiza nenhuma ação se o campo estiver vazio
+                if (cep === '') {
+                    return;
+                }
+
+                // Valida o CEP
+                if (!/^\d{8}$/.test(cep)) {
+                    document.getElementById('mensagem').textContent = 'Por favor, insira um CEP válido com 8 dígitos.';
+                    return;
+                }
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('Erro ao buscar o CEP');
+
+                    const data = await response.json();
+                    if (data.erro) throw new Error('CEP não encontrado');
+
+                    // Preenche os campos automaticamente
+                    document.getElementById('cidade').value = data.localidade || 'Não informado';
+                    document.getElementById('bairro').value = data.bairro || 'Não informado';
+                    document.getElementById('rua').value = data.logradouro || 'Não informado';
+                } catch (error) {
+                    document.getElementById('mensagem').textContent = `Erro: ${error.message}`;
+                }
+            }, 500); // Tempo de espera para evitar chamadas consecutivas enquanto o usuário digita
+        }
+    </script>
+</body>
+</html>
